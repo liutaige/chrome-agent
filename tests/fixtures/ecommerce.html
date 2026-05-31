@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>淘宝 - 商品搜索</title>
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header id="header">
+    <nav aria-label="主导航">
+      <a href="/" class="logo">淘宝网</a>
+      <a href="/category/electronics">数码</a>
+      <a href="/category/clothing">服装</a>
+      <a href="/category/food">美食</a>
+      <input type="text" id="search-input" name="q" placeholder="搜索你想要的商品" aria-label="搜索">
+      <button id="search-btn" type="submit">搜索</button>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Search Results -->
+    <section class="search-results" aria-label="搜索结果">
+      <div class="result-card" data-id="1">
+        <h3>iPhone 15 Pro Max 256GB</h3>
+        <p class="price">¥8999</p>
+        <p class="shop">苹果官方旗舰店</p>
+        <button class="add-to-cart" aria-label="加入购物车">加入购物车</button>
+      </div>
+      <div class="result-card" data-id="2">
+        <h3>华为 Mate 60 Pro</h3>
+        <p class="price">¥6999</p>
+        <p class="shop">华为官方旗舰店</p>
+        <button class="add-to-cart" aria-label="加入购物车">加入购物车</button>
+      </div>
+      <div class="result-card" data-id="3">
+        <h3>小米 14 Ultra</h3>
+        <p class="price">¥5999</p>
+        <p class="shop">小米官方旗舰店</p>
+        <button class="add-to-cart" aria-label="加入购物车">加入购物车</button>
+      </div>
+    </section>
+
+    <!-- Sidebar Filters -->
+    <aside class="filters" aria-label="筛选条件">
+      <h4>价格区间</h4>
+      <input type="number" id="min-price" placeholder="最低价" name="min_price">
+      <input type="number" id="max-price" placeholder="最高价" name="max_price">
+      <button id="filter-btn">确定</button>
+
+      <h4>品牌</h4>
+      <label><input type="checkbox" name="brand" value="apple"> Apple</label>
+      <label><input type="checkbox" name="brand" value="huawei"> 华为</label>
+      <label><input type="checkbox" name="brand" value="xiaomi"> 小米</label>
+    </aside>
+
+    <!-- Login Form (hidden by default in real Taobao) -->
+    <div id="login-modal" style="display:none" role="dialog" aria-label="登录">
+      <input type="text" name="username" placeholder="手机号/用户名" autocomplete="username">
+      <input type="password" name="password" placeholder="密码" autocomplete="current-password">
+      <input type="hidden" name="csrf_token" value="abc123def456">
+      <input type="hidden" name="__RequestVerificationToken" value="secret-token-value">
+      <button id="login-btn">登录</button>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <a href="/about">关于淘宝</a>
+    <a href="/help">帮助中心</a>
+  </footer>
+</body>
+</html>

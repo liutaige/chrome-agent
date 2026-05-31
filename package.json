@@ -1,0 +1,25 @@
+{
+  "name": "chrome-agent",
+  "version": "0.1.0",
+  "description": "AI-powered Chrome browser agent — semantic page understanding, on-demand visual tagging, automated operation",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "pack": "npm run build && cd dist && bestzip ../chrome-agent.zip *"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.270",
+    "@types/dompurify": "^3.0.5",
+    "bestzip": "^2.2.1",
+    "esbuild": "^0.28.0",
+    "jsdom": "^24.1.0",
+    "sharp": "^0.34.5",
+    "sinon-chrome": "^3.0.1",
+    "typescript": "^5.5.0",
+    "vitest": "^1.6.0"
+  }
+}

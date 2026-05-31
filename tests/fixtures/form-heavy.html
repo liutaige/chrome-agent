@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户注册 - 示例网站</title>
+</head>
+<body>
+  <h1>用户注册</h1>
+
+  <form id="registration-form" method="post" action="/register?ref=homepage&utm_source=test">
+    <fieldset>
+      <legend>基本信息</legend>
+
+      <div class="form-group">
+        <label for="username">用户名 *</label>
+        <input type="text" id="username" name="username" placeholder="请输入用户名" required autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label for="email">邮箱 *</label>
+        <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label for="phone">手机号</label>
+        <input type="tel" id="phone" name="phone" placeholder="13800138000">
+      </div>
+
+      <div class="form-group">
+        <label for="password">密码 *</label>
+        <input type="password" id="password" name="password" placeholder="至少8位字符" required autocomplete="new-password">
+        <!-- Note: password fields and hidden inputs should be filtered -->
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>个人资料</legend>
+
+      <div class="form-group">
+        <label for="gender">性别</label>
+        <select id="gender" name="gender">
+          <option value="">请选择</option>
+          <option value="male">男</option>
+          <option value="female">女</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="birthday">生日</label>
+        <input type="date" id="birthday" name="birthday">
+      </div>
+
+      <div class="form-group">
+        <label>兴趣爱好</label>
+        <label><input type="checkbox" name="hobby" value="reading"> 阅读</label>
+        <label><input type="checkbox" name="hobby" value="sports"> 运动</label>
+        <label><input type="checkbox" name="hobby" value="music"> 音乐</label>
+        <label><input type="checkbox" name="hobby" value="travel"> 旅行</label>
+      </div>
+
+      <div class="form-group">
+        <label for="avatar">头像</label>
+        <input type="file" id="avatar" name="avatar" accept="image/*">
+        <!-- Note: file inputs should be filtered -->
+      </div>
+    </fieldset>
+
+    <!-- Hidden fields with sensitive names (should be filtered) -->
+    <input type="hidden" name="csrf_token" value="csrf-abc-123">
+    <input type="hidden" name="session_id" value="sess-xyz-456">
+    <input type="hidden" name="auth_key" value="auth-secret-789">
+    <input type="hidden" name="__verification_token" value="verify-token">
+
+    <div class="form-actions">
+      <button type="submit" id="register-btn">注册</button>
+      <button type="reset" id="reset-btn">重置</button>
+      <a href="/login" id="login-link">已有账号？去登录</a>
+    </div>
+  </form>
+
+  <!-- Card information section (should never be sent to AI) -->
+  <div class="payment-section" style="display:none">
+    <label for="card-number">信用卡号</label>
+    <input type="text" id="card-number" name="card_number" placeholder="1234 5678 9012 3456">
+    <label for="cvv">CVV</label>
+    <input type="text" id="cvv" name="cvv" placeholder="123">
+  </div>
+</body>
+</html>

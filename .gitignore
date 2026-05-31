@@ -1,0 +1,22 @@
+node_modules/
+*.pem
+*.crt
+*.key
+.DS_Store
+Thumbs.db
+*.log
+coverage/
+.claude/
+
+# TypeScript compiled output (esbuild handles the build)
+*.js.map
+src/**/*.js
+
+# Stale tsc artifacts
+background/react-loop.js
+content/dispatcher.js
+content/executor.js
+content/extractor.js
+content/filter.js
+content/injector.js
+

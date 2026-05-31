@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPA Dashboard</title>
+</head>
+<body>
+  <div id="app">
+    <!-- SPA shell with minimal initial content — content loaded dynamically -->
+    <nav class="sidebar" role="navigation" aria-label="Sidebar">
+      <ul>
+        <li><a href="#/dashboard" role="link">Dashboard</a></li>
+        <li><a href="#/projects" role="link">Projects</a></li>
+        <li><a href="#/settings" role="link">Settings</a></li>
+        <li><a href="#/profile" role="link">Profile</a></li>
+      </ul>
+    </nav>
+
+    <main id="content-area">
+      <!-- Content rendered by JS framework -->
+      <div id="dynamic-content"></div>
+
+      <!-- A form that appears after SPA routing -->
+      <form id="create-project-form" style="display:none">
+        <input type="text" name="project_name" placeholder="Project name" aria-label="Project name">
+        <textarea name="description" placeholder="Project description"></textarea>
+        <select name="visibility" aria-label="Visibility">
+          <option value="public">Public</option>
+          <option value="private">Private</option>
+        </select>
+        <input type="hidden" name="nonce" value="form-nonce-12345">
+        <button type="submit">Create Project</button>
+      </form>
+    </main>
+  </div>
+
+  <!-- A modal/dialog rendered by the SPA framework -->
+  <div id="confirm-modal" role="dialog" aria-label="Confirm action" style="display:none">
+    <p class="modal-text">Are you sure?</p>
+    <button class="confirm-yes">Yes</button>
+    <button class="confirm-no">No</button>
+  </div>
+</body>
+</html>
