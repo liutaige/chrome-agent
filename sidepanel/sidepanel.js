@@ -42,28 +42,12 @@ async function init() {
       updateTabInfo(tab2);
     }
   });
-  const checkInterval = setInterval(() => {
-    const demoTask = window.__demoTask;
-    const done = window.__onboardingDone;
-    if (demoTask) {
-      clearInterval(checkInterval);
-      delete window.__demoTask;
-      hideOnboarding();
-      userInput.value = demoTask;
-      submit();
-      return;
-    }
-    if (done) {
-      clearInterval(checkInterval);
-      delete window.__onboardingDone;
-      hideOnboarding();
-      renderWelcome();
-      return;
-    }
-  }, 300);
   const { hasApiKey } = await checkKeyStatus();
   if (!hasApiKey) showOnboarding();
-  else hideOnboarding();
+  else {
+    hideOnboarding();
+    renderWelcome();
+  }
 }
 function updateTabInfo(tab) {
   if (tab?.title) {
@@ -118,13 +102,73 @@ function bindEvents() {
     userInput.style.height = Math.min(userInput.scrollHeight, 72) + "px";
   });
 }
+var _onStep = 1;
+var DEMO_TASKS = [
+  "\u603B\u7ED3\u5F53\u524D\u9875\u9762\u7684\u4E3B\u8981\u5185\u5BB9",
+  "\u627E\u5230\u9875\u9762\u4E2D\u7684\u641C\u7D22\u6846\uFF0C\u641C\u7D22 AI \u6700\u65B0\u8FDB\u5C55",
+  "\u5E2E\u6211\u586B\u5199\u9875\u9762\u4E2D\u7B2C\u4E00\u4E2A\u8868\u5355"
+];
 function showOnboarding() {
   onboarding.classList.remove("hidden");
-  window._onStep = 1;
-  window._updateOnboarding?.();
+  _onStep = 1;
+  updateOnboardingUI();
+  bindOnboardingEvents();
 }
 function hideOnboarding() {
   onboarding.classList.add("hidden");
+}
+function updateOnboardingUI() {
+  onboarding.querySelectorAll(".on-step").forEach((s) => s.classList.remove("active"));
+  const step = onboarding.querySelector(`[data-step="${_onStep}"]`);
+  if (step) step.classList.add("active");
+  onboarding.querySelectorAll(".on-dot").forEach((d) => {
+    d.classList.toggle("active", parseInt(d.getAttribute("data-dot")) === _onStep);
+  });
+  const nextBtn = $("on-next");
+  if (nextBtn) nextBtn.textContent = _onStep === 4 ? "\u5F00\u59CB\u4F7F\u7528" : "\u4E0B\u4E00\u6B65";
+}
+function bindOnboardingEvents() {
+  $("on-next").onclick = () => {
+    if (_onStep < 4) {
+      _onStep++;
+      updateOnboardingUI();
+    } else {
+      hideOnboarding();
+      renderWelcome();
+    }
+  };
+  onboarding.querySelectorAll(".on-dot").forEach((dot) => {
+    dot.addEventListener("click", () => {
+      _onStep = parseInt(dot.getAttribute("data-dot"));
+      updateOnboardingUI();
+    });
+  });
+  $("on-to-settings").onclick = () => chrome.runtime.openOptionsPage();
+  $("on-verify-keys").onclick = async () => {
+    const el2 = $("on-key-status");
+    if (!el2) return;
+    el2.textContent = "\u6B63\u5728\u68C0\u67E5...";
+    try {
+      const status = await checkKeyStatus();
+      if (status.deepseek) {
+        el2.textContent = status.doubao ? "\u2713 DeepSeek + \u8C46\u5305\u90FD\u5DF2\u914D\u7F6E\u3002" : "\u2713 DeepSeek \u5DF2\u914D\u7F6E\u3002\u8C46\u5305\u672A\u914D\u7F6E\uFF08\u4E0D\u5F71\u54CD\u57FA\u672C\u4F7F\u7528\uFF09\u3002";
+        el2.style.color = "var(--success)";
+      } else {
+        el2.textContent = "\u2717 DeepSeek \u672A\u914D\u7F6E\u3002\u8BF7\u5728\u8BBE\u7F6E\u9875\u9762\u586B\u5165 API Key\u3002";
+        el2.style.color = "var(--danger)";
+      }
+    } catch (e) {
+      el2.textContent = "\u68C0\u67E5\u5931\u8D25: " + e.message;
+    }
+  };
+  onboarding.querySelectorAll(".demo-task").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.getAttribute("data-demo") ?? "0");
+      hideOnboarding();
+      userInput.value = DEMO_TASKS[idx] ?? DEMO_TASKS[0];
+      submit();
+    });
+  });
 }
 async function checkKeyStatus() {
   return new Promise((resolve) => {

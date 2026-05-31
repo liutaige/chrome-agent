@@ -55,33 +55,10 @@ async function init() {
     }
   });
 
-  // Poll for inline onboarding signals (set by index.html inline <script>)
-  const checkInterval = setInterval(() => {
-    const demoTask = (window as any).__demoTask as string | undefined;
-    const done = (window as any).__onboardingDone as boolean | undefined;
-
-    if (demoTask) {
-      clearInterval(checkInterval);
-      delete (window as any).__demoTask;
-      hideOnboarding();
-      userInput.value = demoTask;
-      submit();
-      return;
-    }
-
-    if (done) {
-      clearInterval(checkInterval);
-      delete (window as any).__onboardingDone;
-      hideOnboarding();
-      renderWelcome();
-      return;
-    }
-  }, 300);
-
   // Check if onboarding is needed
   const { hasApiKey } = await checkKeyStatus();
   if (!hasApiKey) showOnboarding();
-  else hideOnboarding();
+  else { hideOnboarding(); renderWelcome(); }
 }
 
 function updateTabInfo(tab: chrome.tabs.Tab | undefined) {
@@ -131,18 +108,81 @@ function bindEvents() {
 }
 
 // ─── Onboarding ─────────────────────────────────────────────────────
-// Onboarding UI is handled by inline <script> in index.html.
-// This function just shows/hides the overlay and handles API key check.
+
+let _onStep = 1;
+const DEMO_TASKS = [
+  '总结当前页面的主要内容',
+  '找到页面中的搜索框，搜索 AI 最新进展',
+  '帮我填写页面中第一个表单',
+];
 
 function showOnboarding() {
   onboarding.classList.remove('hidden');
-  // Reset inline onboarding state
-  (window as any)._onStep = 1;
-  (window as any)._updateOnboarding?.();
+  _onStep = 1;
+  updateOnboardingUI();
+  bindOnboardingEvents();
 }
 
 function hideOnboarding() {
   onboarding.classList.add('hidden');
+}
+
+function updateOnboardingUI() {
+  onboarding.querySelectorAll('.on-step').forEach(s => s.classList.remove('active'));
+  const step = onboarding.querySelector(`[data-step="${_onStep}"]`);
+  if (step) step.classList.add('active');
+  onboarding.querySelectorAll('.on-dot').forEach(d => {
+    d.classList.toggle('active', parseInt(d.getAttribute('data-dot')!) === _onStep);
+  });
+  const nextBtn = $('on-next');
+  if (nextBtn) nextBtn.textContent = _onStep === 4 ? '开始使用' : '下一步';
+}
+
+function bindOnboardingEvents() {
+  // Next button
+  $('on-next').onclick = () => {
+    if (_onStep < 4) { _onStep++; updateOnboardingUI(); }
+    else { hideOnboarding(); renderWelcome(); }
+  };
+
+  // Dot navigation
+  onboarding.querySelectorAll('.on-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      _onStep = parseInt(dot.getAttribute('data-dot')!);
+      updateOnboardingUI();
+    });
+  });
+
+  // Settings button
+  $('on-to-settings').onclick = () => chrome.runtime.openOptionsPage();
+
+  // Verify keys button
+  $('on-verify-keys').onclick = async () => {
+    const el = $('on-key-status');
+    if (!el) return;
+    el.textContent = '正在检查...';
+    try {
+      const status = await checkKeyStatus();
+      if (status.deepseek) {
+        el.textContent = status.doubao
+          ? '✓ DeepSeek + 豆包都已配置。' : '✓ DeepSeek 已配置。豆包未配置（不影响基本使用）。';
+        el.style.color = 'var(--success)';
+      } else {
+        el.textContent = '✗ DeepSeek 未配置。请在设置页面填入 API Key。';
+        el.style.color = 'var(--danger)';
+      }
+    } catch (e: any) { el.textContent = '检查失败: ' + e.message; }
+  };
+
+  // Demo tasks
+  onboarding.querySelectorAll('.demo-task').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.getAttribute('data-demo') ?? '0');
+      hideOnboarding();
+      userInput.value = DEMO_TASKS[idx] ?? DEMO_TASKS[0];
+      submit();
+    });
+  });
 }
 
 async function checkKeyStatus() {

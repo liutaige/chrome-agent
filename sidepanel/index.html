@@ -10,7 +10,6 @@
   <div class="bg-gradient"></div>
 
   <div class="glass-panel">
-    <!-- Header -->
     <header class="panel-header">
       <div class="header-left">
         <span class="title-icon">✦</span>
@@ -19,16 +18,13 @@
       <div class="header-right">
         <span id="token-badge" class="token-badge" title="Token 用量">—</span>
         <button id="theme-btn" class="theme-btn" title="切换主题">🌓</button>
-        <button id="stop-btn" class="stop-btn" title="停止执行 (Esc)" disabled>
-          <span class="stop-icon">■</span>
-        </button>
+        <button id="stop-btn" class="stop-btn" title="停止执行 (Esc)" disabled><span class="stop-icon">■</span></button>
         <button id="settings-btn" class="icon-btn" title="设置">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         </button>
       </div>
     </header>
 
-    <!-- Active tab indicator -->
     <div id="tab-bar" class="tab-bar">
       <div class="tab-info">
         <img id="tab-favicon" class="tab-favicon" src="" alt="" onerror="this.style.display='none'" />
@@ -37,21 +33,15 @@
       <span id="tab-url" class="tab-url"></span>
     </div>
 
-    <!-- Chat area -->
-    <main id="chat-area" class="chat-area">
-      <!-- Filled dynamically -->
-    </main>
+    <main id="chat-area" class="chat-area"></main>
 
-    <!-- Status bar -->
     <div id="status-bar" class="status-bar">
       <span id="status-dot" class="status-dot idle"></span>
       <span id="status-text" class="status-text">就绪</span>
       <span id="cost-display" class="cost-display"></span>
     </div>
 
-    <!-- Input area -->
     <footer class="input-area">
-      <!-- Context chips -->
       <div id="context-chips" class="context-chips"></div>
       <div class="input-row">
         <textarea id="user-input" class="chat-input" placeholder="告诉 Chrome Agent 你想做什么..." rows="1"></textarea>
@@ -62,7 +52,7 @@
     </footer>
   </div>
 
-  <!-- Onboarding overlay -->
+  <!-- Onboarding overlay — all handlers in sidepanel.js -->
   <div id="onboarding" class="onboarding-overlay">
     <div class="onboarding-card">
       <div class="onboarding-steps">
@@ -75,87 +65,37 @@
           <div class="on-step-icon">🔑</div>
           <h2>配置 API 密钥</h2>
           <p>需要 DeepSeek API Key（决策大脑）<br>和豆包（视觉眼睛，可选需要 ARK API Key + Endpoint ID）。</p>
-          <button class="glass-btn" onclick="chrome.runtime.openOptionsPage()">去设置页面 →</button>
+          <button class="glass-btn" id="on-to-settings">去设置页面 →</button>
         </div>
         <div class="on-step" data-step="3">
           <div class="on-step-icon">✓</div>
           <h2>密钥验证</h2>
           <p id="on-key-status">在设置页面填入密钥后回来验证。</p>
-          <button class="glass-btn" onclick="window.verifyOnboardingKeys()">验证密钥状态</button>
+          <button class="glass-btn" id="on-verify-keys">验证密钥状态</button>
         </div>
         <div class="on-step" data-step="4">
           <div class="on-step-icon">🚀</div>
           <h2>开始使用</h2>
           <p>一切就绪！选择一个任务试试：</p>
           <div class="on-demo-tasks">
-            <button class="demo-task" onclick="window.startDemo('总结当前页面的主要内容')">📄 总结本页内容</button>
-            <button class="demo-task" onclick="window.startDemo('找到页面中的搜索框，搜索 AI 最新进展')">🔍 搜索内容</button>
-            <button class="demo-task" onclick="window.startDemo('帮我填写页面中第一个表单')">✏️ 填写表单</button>
+            <button class="demo-task" data-demo="0">📄 总结本页内容</button>
+            <button class="demo-task" data-demo="1">🔍 搜索内容</button>
+            <button class="demo-task" data-demo="2">✏️ 填写表单</button>
           </div>
         </div>
       </div>
       <div class="onboarding-nav">
         <div class="on-dots">
-          <span class="on-dot active" data-dot="1" onclick="window.goOnboardingStep(1)"></span>
-          <span class="on-dot" data-dot="2" onclick="window.goOnboardingStep(2)"></span>
-          <span class="on-dot" data-dot="3" onclick="window.goOnboardingStep(3)"></span>
-          <span class="on-dot" data-dot="4" onclick="window.goOnboardingStep(4)"></span>
+          <span class="on-dot active" data-dot="1"></span>
+          <span class="on-dot" data-dot="2"></span>
+          <span class="on-dot" data-dot="3"></span>
+          <span class="on-dot" data-dot="4"></span>
         </div>
-        <button type="button" id="on-next" class="glass-btn" onclick="window.nextOnboardingStep()">下一步</button>
+        <button type="button" id="on-next" class="glass-btn">下一步</button>
       </div>
     </div>
   </div>
 
-  <script>
-    // Inline onboarding — runs immediately, no module dependency
-    let _onStep = 1;
-    function _updateOnboarding() {
-      document.querySelectorAll('.on-step').forEach(s => s.classList.remove('active'));
-      const step = document.querySelector(`[data-step="${_onStep}"]`);
-      if (step) step.classList.add('active');
-      document.querySelectorAll('.on-dot').forEach(d => {
-        d.classList.toggle('active', parseInt(d.getAttribute('data-dot')) === _onStep);
-      });
-      const nextBtn = document.getElementById('on-next');
-      if (nextBtn) nextBtn.textContent = _onStep === 4 ? '开始使用' : '下一步';
-    }
-    window.nextOnboardingStep = function() {
-      if (_onStep < 4) { _onStep++; _updateOnboarding(); }
-      else {
-        document.getElementById('onboarding').classList.add('hidden');
-        // Signal to sidepanel.js that onboarding is done
-        window.__onboardingDone = true;
-      }
-    };
-    window.goOnboardingStep = function(step) { _onStep = step; _updateOnboarding(); };
-    window.startDemo = function(task) {
-      document.getElementById('onboarding').classList.add('hidden');
-      window.__onboardingDone = true;
-      window.__demoTask = task;
-    };
-    window.verifyOnboardingKeys = async function() {
-      const el = document.getElementById('on-key-status');
-      if (!el) return;
-      el.textContent = '正在检查...';
-      try {
-        const p = chrome.runtime.connect({ name: 'settings' });
-        p.postMessage({ type: 'get_api_key_status' });
-        p.onMessage.addListener(function(msg) {
-          if (msg.type === 'api_key_status') {
-            if (msg.deepseekConfigured) {
-              el.textContent = msg.doubaoApiKeyConfigured && msg.doubaoEndpointConfigured
-                ? '✓ DeepSeek + 豆包都已配置。' : '✓ DeepSeek 已配置。豆包未配置（不影响基本使用）。';
-              el.style.color = 'var(--success)';
-            } else {
-              el.textContent = '✗ DeepSeek 未配置。请在设置页面填入 API Key。';
-              el.style.color = 'var(--danger)';
-            }
-            p.disconnect();
-          }
-        });
-      } catch(e) { el.textContent = '检查失败: ' + e.message; }
-    };
-  </script>
   <script src="sidepanel.js"></script>
 </body>
 </html>
