@@ -273,6 +273,24 @@ async function handleCallVisionModel(params: Record<string, unknown>): Promise<D
   }
 }
 
+/**
+ * Resolve an element by ID — tries semantic ID first, then tag ID.
+ * This lets the AI click/type elements directly from get_page_semantic_structure
+ * without needing to tag them first.
+ */
+function resolveElementByAnyId(elementId: number): Element | null {
+  // Try semantic ID from extractor's selector map
+  const selector = semanticIdToSelector.get(elementId);
+  if (selector) {
+    try {
+      const el = document.querySelector(selector);
+      if (el && el.isConnected) return el;
+    } catch { /* invalid selector */ }
+  }
+  // Fallback: tag element from injector
+  return resolveElementById(elementId);
+}
+
 async function handleExecute(
   type: string,
   params: Record<string, unknown>,
@@ -280,21 +298,33 @@ async function handleExecute(
   transition('executing');
   extractResultStale = true;
 
+  // Pre-resolve element: try semantic ID first (from extractor), then tag ID
+  const elementId = params.element_id as number;
+  const el = resolveElementByAnyId(elementId);
+  if (!el) {
+    transition('idle');
+    return { success: false, error: `Element #${elementId} not found on page. Try get_page_semantic_structure again to refresh element IDs.` };
+  }
+
+  // Temporarily tag the resolved element so executor can find it
+  // (executor uses resolveElementById which only looks at tagged elements)
+  el.setAttribute('data-tag-id', `@${elementId}`);
+
   try {
     let result: OperationResult;
 
     switch (type) {
       case 'click':
-        result = await executeClick({ elementId: params.element_id as number });
+        result = await executeClick({ elementId });
         break;
       case 'type':
         result = await executeType({
-          elementId: params.element_id as number,
+          elementId,
           text: params.text as string,
         });
         break;
       case 'hover':
-        result = await executeHover({ elementId: params.element_id as number });
+        result = await executeHover({ elementId });
         break;
       case 'press_key':
         result = await executePressKey({ key: params.key as string });

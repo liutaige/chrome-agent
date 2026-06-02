@@ -424,10 +424,10 @@ export async function runReactLoop(config: ReactLoopConfig): Promise<void> {
         messages.push(...compressedMessages);
       }
     } else {
-      // No tool call — just a text response. Push a continuation prompt.
+      // No tool call — just a text response. Push a strong continuation prompt.
       messages.push({
         role: 'user',
-        content: '请继续。如果任务已完成，请调用 finish_task。如果还有下一步操作（获取语义结构、打标签、执行操作等），请继续。',
+        content: '如果用户的请求已经完成，必须立即调用 finish_task。不要继续操作、不要补充说明、不要画蛇添足。如果确实还有未完成的步骤，请执行下一步操作。',
       });
       steps.push({
         index: stepIndex,

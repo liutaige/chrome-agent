@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "Chrome Agent",
+  "version": "0.1.0",
+  "description": "AI-powered browser agent — understand pages, tag elements, and automate operations",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuly4I918qIrr7Dpgxl+FqqbOdKuBaQ9YXwTgLZBvw/1AkToFACTWzlXoWr0ZR1GJuQ62o3hbMWyleGH+VpfF3sCZo1bVOkLOfJ4A8gVvy7yYvkboPXLRKO8euUoCJeuCMjNUAjzcWIOSTt2oMZen8CL7Twt5EXo2kYjRBtEEqm5vG3+tmItCvCCkkncCVVpa+UbrQf3HYEgkDn7VjO24L+W+9x/pCMUi2VAVkz60LDoCG4S9vGy11aecLuCULAZsDsEg0XoMmr5PH2yKV3QhI3oLvvQwOIxHaLNk/mEoRpSkCdXg4TIhwhhxUYk0/BmDBqurhmZR7w5IB6vpqdvY7wIDAQAB",
+
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "sidePanel",
+    "tabs",
+    "webNavigation",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "https://api.deepseek.com/*",
+    "https://ark.cn-beijing.volces.com/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'self' https://api.deepseek.com https://ark.cn-beijing.volces.com"
+  },
+  "background": {
+    "service_worker": "background/worker.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
+  "options_page": "settings/index.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_title": "Chrome Agent",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}

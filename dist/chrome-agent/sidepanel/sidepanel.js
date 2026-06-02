@@ -416,26 +416,8 @@ window.cycleTheme = () => {
 };
 function renderMarkdown(text) {
   let html = text;
-  const codeBlocks = [];
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
-    const idx = codeBlocks.length;
-    codeBlocks.push(`<pre><code>${escHtml(code.trim())}</code></pre>`);
-    return `%%CODEBLOCK_${idx}%%`;
-  });
-  html = html.replace(/(?:^|\n\n)(\|.+\|\n\|[\s\-:|]+\|\n(?:\|.+\|\n?)+)/g, (tableBlock) => {
-    const trimmed = tableBlock.trim();
-    const rows = trimmed.split("\n").filter((r) => r.includes("|"));
-    if (rows.length < 2) return tableBlock;
-    const headerCells = rows[0].split("|").filter((c) => c.trim()).map((c) => `<th>${c.trim()}</th>`).join("");
-    const bodyRows = rows.slice(2).map((row) => {
-      const cells = row.split("|").filter((c) => c.trim()).map((c) => `<td>${c.trim()}</td>`).join("");
-      return `<tr>${cells}</tr>`;
-    }).join("");
-    return `
-
-<table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>
-
-`;
+    return `<pre><code>${escHtml(code.trim())}</code></pre>`;
   });
   html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
@@ -450,13 +432,12 @@ function renderMarkdown(text) {
   html = html.replace(/^> (.+)$/gm, "<blockquote>$1</blockquote>");
   html = html.replace(/^---$/gm, "<hr>");
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-  html = html.replace(/%%CODEBLOCK_(\d+)%%/g, (_m, idx) => codeBlocks[parseInt(idx)] ?? "");
   html = html.replace(/\n\n/g, "</p><p>");
   html = html.replace(/\n/g, "<br>");
   html = "<p>" + html + "</p>";
   html = html.replace(/<p><\/p>/g, "");
-  html = html.replace(/<p>\s*(<h[1-4]|<ul|<ol|<pre|<blockquote|<hr|<table)/g, "$1");
-  html = html.replace(/(<\/h[1-4]>|<\/ul>|<\/ol>|<\/pre>|<\/blockquote>|<\/table>)\s*<\/p>/g, "$1");
+  html = html.replace(/<p>(<h[1-4]|<ul|<ol|<pre|<blockquote|<hr)/g, "$1");
+  html = html.replace(/(<\/h[1-4]>|<\/ul>|<\/ol>|<\/pre>|<\/blockquote>|<\/hr>)<\/p>/g, "$1");
   return html;
 }
 document.addEventListener("DOMContentLoaded", () => {
