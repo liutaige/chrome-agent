@@ -2256,6 +2256,7 @@ var pendingAskUser = /* @__PURE__ */ new Map();
 var stopFlags = /* @__PURE__ */ new Map();
 async function handleSidePanelReady(_port, tabId) {
   currentTabId = tabId;
+  await ensureContentScriptInjected(tabId);
   const { checkRecoverableSession: checkRecoverableSession2 } = await Promise.resolve().then(() => (init_react_loop(), react_loop_exports));
   const recovery = await checkRecoverableSession2();
   if (recovery?.recoverable) {
@@ -2475,20 +2476,30 @@ var injectedTabs = /* @__PURE__ */ new Set();
 async function ensureContentScriptInjected(tabId) {
   if (injectedTabs.has(tabId)) return;
   try {
+    const tab = await chrome.tabs.get(tabId);
+    const url = tab.url ?? "";
+    const isRestricted = url.startsWith("chrome://") || url.startsWith("chrome-extension://") || url.startsWith("about:") || url.startsWith("edge://");
+    if (isRestricted) {
+      console.log(`[worker] Skipping content script injection for restricted URL: ${url}`);
+      return;
+    }
     const isLoaded = await new Promise((resolve) => {
       chrome.tabs.sendMessage(tabId, { action: "ping", protocolVersion: 1, requestId: "ping", tabId }, (resp) => {
         resolve(!chrome.runtime.lastError && resp?.success === true);
       });
     });
     if (!isLoaded) {
+      console.log(`[worker] Injecting content script into tab ${tabId} (${url})`);
       await chrome.scripting.executeScript({
         target: { tabId },
         files: ["content/content.js"]
       });
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 300));
     }
     injectedTabs.add(tabId);
-  } catch {
+    console.log(`[worker] Content script ready in tab ${tabId}`);
+  } catch (err) {
+    console.error(`[worker] Failed to inject content script into tab ${tabId}:`, err);
   }
 }
 async function captureScreenshot(options) {

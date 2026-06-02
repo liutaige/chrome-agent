@@ -247,6 +247,10 @@ const stopFlags = new Map<number, boolean>();
 async function handleSidePanelReady(_port: chrome.runtime.Port, tabId: number): Promise<void> {
   currentTabId = tabId;
 
+  // Immediately inject content script into active tab
+  // (handles case where tab was open before extension loaded)
+  await ensureContentScriptInjected(tabId);
+
   // Check for recoverable session
   const { checkRecoverableSession } = await import('./react-loop');
   const recovery = await checkRecoverableSession();
@@ -537,6 +541,17 @@ async function ensureContentScriptInjected(tabId: number): Promise<void> {
   if (injectedTabs.has(tabId)) return;
 
   try {
+    // First verify the tab is accessible
+    const tab = await chrome.tabs.get(tabId);
+    const url = tab.url ?? '';
+    const isRestricted = url.startsWith('chrome://') || url.startsWith('chrome-extension://') ||
+                         url.startsWith('about:') || url.startsWith('edge://');
+
+    if (isRestricted) {
+      console.log(`[worker] Skipping content script injection for restricted URL: ${url}`);
+      return; // Will be retried when user navigates to a regular page
+    }
+
     // Check if content script is already loaded by pinging it
     const isLoaded = await new Promise<boolean>((resolve) => {
       chrome.tabs.sendMessage(tabId, { action: 'ping', protocolVersion: 1, requestId: 'ping', tabId }, (resp) => {
@@ -545,18 +560,20 @@ async function ensureContentScriptInjected(tabId: number): Promise<void> {
     });
 
     if (!isLoaded) {
+      console.log(`[worker] Injecting content script into tab ${tabId} (${url})`);
       // Inject programmatically
       await chrome.scripting.executeScript({
         target: { tabId },
         files: ['content/content.js'],
       });
-      // Wait a tick for the content script to initialize
-      await new Promise((r) => setTimeout(r, 200));
+      // Wait for initialization
+      await new Promise((r) => setTimeout(r, 300));
     }
 
     injectedTabs.add(tabId);
-  } catch {
-    // If we can't inject (e.g., chrome:// pages), just proceed — sendMessage will fail with a clear error
+    console.log(`[worker] Content script ready in tab ${tabId}`);
+  } catch (err) {
+    console.error(`[worker] Failed to inject content script into tab ${tabId}:`, err);
   }
 }
 
