@@ -729,11 +729,16 @@ function buildToolDefinitions() {
       type: "function",
       function: {
         name: "call_vision_model",
-        description: "\u5C06\u5F53\u524D\u5E26\u6807\u7B7E\u7684\u622A\u56FE\u53D1\u9001\u7ED9\u8C46\u5305\u89C6\u89C9\u6A21\u578B\uFF0C\u8BE2\u95EE\u76EE\u6807\u5143\u7D20\u7684\u6570\u5B57 ID\u3002\u4EC5\u5728\u6587\u672C\u65E0\u6CD5\u5224\u65AD\u65F6\u8C03\u7528\u3002",
+        description: "\u8C03\u7528\u8C46\u5305\u89C6\u89C9\u6A21\u578B\u5206\u6790\u5F53\u524D\u622A\u56FE\u3002\u7528\u9014\uFF1A1) \u8BC6\u522B\u6807\u7B7E\u5143\u7D20\u7F16\u53F7 2) OCR \u63D0\u53D6\u56FE\u7247\u4E2D\u7684\u6587\u5B57 3) \u63CF\u8FF0\u56FE\u7247\u5185\u5BB9 4) \u56DE\u7B54\u5173\u4E8E\u56FE\u7247\u7684\u95EE\u9898\u3002\u6210\u672C\u8F83\u9AD8\uFF0C\u4F18\u5148\u7528\u6587\u672C\u8BED\u4E49\u3002",
         parameters: {
           type: "object",
           properties: {
-            question: { type: "string", description: '\u8BE2\u95EE\u8C46\u5305\u7684\u95EE\u9898\uFF0C\u5982 "\u641C\u7D22\u6309\u94AE\u7684\u7F16\u53F7\u662F\u51E0\uFF1F"' }
+            question: { type: "string", description: "\u8981\u95EE\u8C46\u5305\u7684\u95EE\u9898\u6216\u6307\u4EE4" },
+            mode: {
+              type: "string",
+              enum: ["auto", "identify_element", "read_text", "describe"],
+              description: "\u89C6\u89C9\u6A21\u5F0F\uFF1Aauto=\u81EA\u52A8\u5224\u65AD, identify_element=\u8BC6\u522B\u6807\u7B7E\u7F16\u53F7, read_text=OCR\u63D0\u53D6\u6587\u5B57, describe=\u63CF\u8FF0\u56FE\u7247"
+            }
           },
           required: ["question"]
         }
@@ -1283,28 +1288,40 @@ async function callDoubaoVision(tabId, request) {
       circuit.open = false;
       circuit.consecutiveFailures = 0;
     } else {
-      return {
-        success: false,
-        error: "Doubao Vision circuit breaker open. Using text-only fallback mode."
-      };
+      return { success: false, error: "Doubao Vision circuit breaker open. Using text-only fallback mode." };
     }
   }
   const apiKey = await loadApiKey("doubao");
   if (!apiKey) {
-    return { success: false, error: "\u8C46\u5305 API Key \u672A\u914D\u7F6E\u3002\u8BF7\u5728\u8BBE\u7F6E\u9875\u9762\u586B\u5165 ARK API Key\u3002" };
+    return { success: false, error: "\u8C46\u5305 API Key \u672A\u914D\u7F6E\u3002" };
   }
   const endpointId = await loadDoubaoEndpointId();
   if (!endpointId) {
-    return { success: false, error: "\u8C46\u5305 Endpoint ID (ep-xxx) \u672A\u914D\u7F6E\u3002\u8BF7\u5728\u8BBE\u7F6E\u9875\u9762\u586B\u5165\u63A5\u5165\u70B9 ID\u3002" };
+    return { success: false, error: "\u8C46\u5305 Endpoint ID (ep-xxx) \u672A\u914D\u7F6E\u3002" };
   }
-  const systemPrompt = `\u4F60\u662F\u4E00\u4E2A\u89C6\u89C9\u8BC6\u522B\u52A9\u624B\u3002\u56FE\u7247\u4E2D\u53E0\u52A0\u4E86\u7EA2\u8272\u6570\u5B57\u6807\u7B7E\u3002\u8BF7\u4ED4\u7EC6\u67E5\u770B\u56FE\u7247\u4E2D\u7684\u6570\u5B57\u6807\u7B7E\uFF0C\u56DE\u7B54\u7528\u6237\u5173\u4E8E\u6807\u7B7E\u7F16\u53F7\u7684\u95EE\u9898\u3002
-\u89C4\u5219\uFF1A
-- \u53EA\u8FD4\u56DE\u4E00\u4E2A\u6570\u5B57 ID
-- \u5982\u679C\u65E0\u6CD5\u786E\u5B9A\uFF0C\u8FD4\u56DE -1
-- \u4E0D\u8981\u8FD4\u56DE\u4EFB\u4F55\u5176\u4ED6\u6587\u5B57\uFF0C\u53EA\u8FD4\u56DE\u6570\u5B57`;
-  const userPrompt = `${request.question}
-
-\u8BF7\u8FD4\u56DE\u5BF9\u5E94\u7684\u6807\u7B7E\u6570\u5B57\u7F16\u53F7\u3002\u53EA\u8FD4\u56DE\u6570\u5B57\uFF0C\u4E0D\u8981\u5176\u4ED6\u5185\u5BB9\u3002`;
+  const mode = request.mode ?? "auto";
+  let systemPrompt;
+  let userPrompt;
+  switch (mode) {
+    case "identify_element":
+      systemPrompt = `\u4F60\u662F\u4E00\u4E2A\u89C6\u89C9\u8BC6\u522B\u52A9\u624B\u3002\u56FE\u7247\u4E2D\u53E0\u52A0\u4E86\u7EA2\u8272\u6570\u5B57\u6807\u7B7E\u3002\u53EA\u8FD4\u56DE\u6807\u7B7E\u7F16\u53F7\uFF0C\u4E0D\u8981\u5176\u4ED6\u6587\u5B57\u3002\u5982\u679C\u65E0\u6CD5\u786E\u5B9A\u8FD4\u56DE -1\u3002`;
+      userPrompt = `${request.question}
+\u53EA\u8FD4\u56DE\u6570\u5B57\u3002`;
+      break;
+    case "read_text":
+      systemPrompt = `\u4F60\u662F\u4E00\u4E2A OCR \u6587\u5B57\u63D0\u53D6\u52A9\u624B\u3002\u4ED4\u7EC6\u9605\u8BFB\u56FE\u7247\u4E2D\u7684\u6240\u6709\u6587\u5B57\uFF0C\u5B8C\u6574\u3001\u51C6\u786E\u5730\u8F93\u51FA\u3002\u4FDD\u7559\u539F\u6587\u7684\u6362\u884C\u548C\u7ED3\u6784\u3002\u4E0D\u8981\u6DFB\u52A0\u89E3\u91CA\u3002`;
+      userPrompt = `\u8BF7\u63D0\u53D6\u56FE\u7247\u4E2D\u7684\u6240\u6709\u6587\u5B57\u5185\u5BB9\u3002`;
+      break;
+    case "describe":
+      systemPrompt = `\u4F60\u662F\u4E00\u4E2A\u89C6\u89C9\u5206\u6790\u52A9\u624B\u3002\u4ED4\u7EC6\u89C2\u5BDF\u56FE\u7247\u5185\u5BB9\uFF0C\u63CF\u8FF0\u4F60\u770B\u5230\u7684\u4E1C\u897F\u2014\u2014\u5E03\u5C40\u3001\u5143\u7D20\u3001\u6587\u5B57\u3001\u533A\u57DF\u3001\u72B6\u6001\u3002\u5C3D\u53EF\u80FD\u8BE6\u7EC6\u548C\u51C6\u786E\u3002`;
+      userPrompt = request.question;
+      break;
+    case "auto":
+    default:
+      systemPrompt = `\u4F60\u662F\u4E00\u4E2A\u89C6\u89C9\u8BC6\u522B\u52A9\u624B\u3002\u6839\u636E\u7528\u6237\u7684\u95EE\u9898\u6765\u5206\u6790\u56FE\u7247\u3002\u5982\u679C\u56FE\u7247\u4E2D\u6709\u7EA2\u8272\u6570\u5B57\u6807\u7B7E\uFF0C\u6807\u7B7E\u7F16\u53F7\u53EF\u4EE5\u7528\u6765\u5B9A\u4F4D\u5143\u7D20\u3002\u56DE\u7B54\u8981\u76F4\u63A5\u3001\u51C6\u786E\u3001\u6709\u7528\u3002`;
+      userPrompt = request.question;
+      break;
+  }
   const result = await fetchWithRetry(
     DOUBAO_API_URL,
     {
@@ -1357,23 +1374,25 @@ async function callDoubaoVision(tabId, request) {
     };
   }
   const content = result.data.choices[0]?.message?.content ?? "";
-  const trimmed = content.trim();
-  const idMatch = trimmed.match(/-?\b(\d+)\b/);
-  const elementId = idMatch ? parseInt(idMatch[1], 10) : void 0;
-  let confidence = 0.5;
-  if (elementId && trimmed === String(elementId)) {
-    confidence = 0.95;
-  } else if (elementId && trimmed.match(/^\d+$/)) {
-    confidence = 0.9;
-  } else if (elementId) {
-    confidence = 0.7;
-  } else if (trimmed === "-1" || trimmed.includes("-1")) {
-    confidence = 0.8;
-  }
   circuit.consecutiveFailures = 0;
+  const idMatch = content.match(/-?\b(\d+)\b/);
+  const elementId = mode === "identify_element" && idMatch ? parseInt(idMatch[1], 10) : void 0;
+  let confidence = 0.5;
+  if (mode === "identify_element") {
+    if (elementId !== void 0 && elementId >= 0 && content.trim() === String(elementId)) {
+      confidence = 0.95;
+    } else if (elementId !== void 0 && elementId >= 0) {
+      confidence = 0.7;
+    } else if (content.trim() === "-1") {
+      confidence = 0.8;
+    }
+  } else {
+    confidence = 0.85;
+  }
   return {
     success: true,
-    elementId: elementId && elementId >= 0 ? elementId : void 0,
+    elementId: elementId !== void 0 && elementId >= 0 ? elementId : void 0,
+    content: content.trim(),
     reasoning: content,
     confidence
   };
@@ -1773,9 +1792,23 @@ async function executeVisionCall(tabId, args, _stepIndex, abortSignal) {
     } catch {
     }
     const imageBase64 = stripDataUrlPrefix(dataUrl);
-    const visionResult = await callDoubaoVision(tabId, { imageBase64, question: boundsData.question, devicePixelRatio: dpr });
+    const mode = args.mode ?? "auto";
+    const visionResult = await callDoubaoVision(tabId, {
+      imageBase64,
+      question: boundsData.question,
+      mode,
+      devicePixelRatio: dpr
+    });
     if (!visionResult.success) return { success: false, error: visionResult.error };
-    return { success: true, data: { elementId: visionResult.elementId, confidence: visionResult.confidence } };
+    return {
+      success: true,
+      data: {
+        elementId: visionResult.elementId,
+        content: visionResult.content,
+        confidence: visionResult.confidence,
+        mode
+      }
+    };
   } catch (err) {
     console.error("[react-loop] Vision call failed:", err);
     return { success: false, error: `Vision call error: ${err instanceof Error ? err.message : String(err)}` };
