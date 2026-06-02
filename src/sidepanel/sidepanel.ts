@@ -467,9 +467,25 @@ function applyTheme(theme: string) {
 function renderMarkdown(text: string): string {
   let html = text;
 
-  // Fenced code blocks
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m: string, _lang: string, code: string) => {
-    return `<pre><code>${escHtml(code.trim())}</code></pre>`;
+  // Fenced code blocks (preserve from other processing)
+  const codeBlocks: string[] = [];
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push(`<pre><code>${escHtml(code.trim())}</code></pre>`);
+    return `%%CODEBLOCK_${idx}%%`;
+  });
+
+  // Tables (before line break conversion — needs raw newlines)
+  html = html.replace(/(?:^|\n\n)(\|.+\|\n\|[\s\-:|]+\|\n(?:\|.+\|\n?)+)/g, (tableBlock: string) => {
+    const trimmed = tableBlock.trim();
+    const rows = trimmed.split('\n').filter(r => r.includes('|'));
+    if (rows.length < 2) return tableBlock;
+    const headerCells = rows[0].split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
+    const bodyRows = rows.slice(2).map(row => {
+      const cells = row.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+    return `\n\n<table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>\n\n`;
   });
 
   // Inline code
@@ -503,6 +519,9 @@ function renderMarkdown(text: string): string {
   // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
 
+  // Restore code blocks
+  html = html.replace(/%%CODEBLOCK_(\d+)%%/g, (_m, idx) => codeBlocks[parseInt(idx)] ?? '');
+
   // Line breaks
   html = html.replace(/\n\n/g, '</p><p>');
   html = html.replace(/\n/g, '<br>');
@@ -510,10 +529,10 @@ function renderMarkdown(text: string): string {
   // Wrap in paragraphs
   html = '<p>' + html + '</p>';
 
-  // Clean up empty paragraphs
+  // Clean up empty paragraphs and block-level nesting
   html = html.replace(/<p><\/p>/g, '');
-  html = html.replace(/<p>(<h[1-4]|<ul|<ol|<pre|<blockquote|<hr)/g, '$1');
-  html = html.replace(/(<\/h[1-4]>|<\/ul>|<\/ol>|<\/pre>|<\/blockquote>|<\/hr>)<\/p>/g, '$1');
+  html = html.replace(/<p>\s*(<h[1-4]|<ul|<ol|<pre|<blockquote|<hr|<table)/g, '$1');
+  html = html.replace(/(<\/h[1-4]>|<\/ul>|<\/ol>|<\/pre>|<\/blockquote>|<\/table>)\s*<\/p>/g, '$1');
 
   return html;
 }
