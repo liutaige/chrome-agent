@@ -137,11 +137,16 @@ export function buildToolDefinitions(): ToolDefinition[] {
       type: 'function' as const,
       function: {
         name: 'call_vision_model',
-        description: '将当前带标签的截图发送给豆包视觉模型，询问目标元素的数字 ID。仅在文本无法判断时调用。',
+        description: '调用豆包视觉模型分析当前截图。用途：1) 识别标签元素编号 2) OCR 提取图片中的文字 3) 描述图片内容 4) 回答关于图片的问题。成本较高，优先用文本语义。',
         parameters: {
           type: 'object',
           properties: {
-            question: { type: 'string', description: '询问豆包的问题，如 "搜索按钮的编号是几？"' },
+            question: { type: 'string', description: '要问豆包的问题或指令' },
+            mode: {
+              type: 'string',
+              enum: ['auto', 'identify_element', 'read_text', 'describe'],
+              description: '视觉模式：auto=自动判断, identify_element=识别标签编号, read_text=OCR提取文字, describe=描述图片',
+            },
           },
           required: ['question'],
         },

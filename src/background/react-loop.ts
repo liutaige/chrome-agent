@@ -558,11 +558,25 @@ async function executeVisionCall(
     } catch { /* use default 1 */ }
 
     const imageBase64 = stripDataUrlPrefix(dataUrl);
-    const visionResult = await callDoubaoVision(tabId, { imageBase64, question: boundsData.question, devicePixelRatio: dpr });
+    const mode = (args.mode as string) ?? 'auto';
+    const visionResult = await callDoubaoVision(tabId, {
+      imageBase64,
+      question: boundsData.question,
+      mode: mode as any,
+      devicePixelRatio: dpr,
+    });
 
     if (!visionResult.success) return { success: false, error: visionResult.error };
 
-    return { success: true, data: { elementId: visionResult.elementId, confidence: visionResult.confidence } };
+    return {
+      success: true,
+      data: {
+        elementId: visionResult.elementId,
+        content: visionResult.content,
+        confidence: visionResult.confidence,
+        mode,
+      },
+    };
   } catch (err) {
     console.error('[react-loop] Vision call failed:', err);
     return { success: false, error: `Vision call error: ${err instanceof Error ? err.message : String(err)}` };

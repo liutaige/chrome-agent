@@ -68,19 +68,25 @@ export function getDoubaoCircuitStatus(tabId: number): {
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
+export type VisionMode = 'identify_element' | 'read_text' | 'describe' | 'auto';
+
 export interface DoubaoVisionRequest {
-  /** Base64-encoded PNG image (WITHOUT the data:image/png;base64, prefix) */
+  /** Base64-encoded image (WITHOUT the data:image/png;base64, prefix) */
   imageBase64: string;
-  /** The question to ask about the image. */
+  /** What DeepSeek wants to know about the image. */
   question: string;
+  /** Vision mode — controls how Doubao responds. */
+  mode?: VisionMode;
   /** Device pixel ratio for coordinate correction. */
   devicePixelRatio?: number;
 }
 
 export interface DoubaoVisionResponse {
   success: boolean;
-  /** The element ID identified by the vision model. */
+  /** For identify_element mode: the tagged element number. */
   elementId?: number;
+  /** Full text response from Doubao. */
+  content?: string;
   /** Model's reasoning (if available). */
   reasoning?: string;
   /** Confidence score (estimated). */
@@ -91,52 +97,66 @@ export interface DoubaoVisionResponse {
 // ─── API Call ──────────────────────────────────────────────────────────────
 
 /**
- * Call the Doubao Vision API to identify which tagged element matches the query.
+ * Call the Doubao Vision API.
  *
- * The image should be a cropped screenshot (tag element bounds union + 20px margin).
- * The question should ask about a specific element, e.g. "搜索按钮的编号是几？"
- *
- * @param tabId - Tab ID for circuit breaker tracking
- * @param request - Vision request with image and question
- * @returns Identified element ID or error
+ * Modes:
+ *   - 'identify_element': Image has red numbered tags. Doubao returns just the element number.
+ *   - 'read_text': OCR mode. Doubao extracts all visible text from the image.
+ *   - 'describe': Doubao describes what it sees in the image.
+ *   - 'auto': Doubao decides how to answer based on the question.
  */
 export async function callDoubaoVision(
   tabId: number,
   request: DoubaoVisionRequest,
 ): Promise<DoubaoVisionResponse> {
-  // Check circuit breaker
   const circuit = getCircuit(tabId);
   if (circuit.open) {
     if (Date.now() - circuit.lastFailureTime > CIRCUIT_RESET_MS) {
-      // Auto-reset
       circuit.open = false;
       circuit.consecutiveFailures = 0;
     } else {
-      return {
-        success: false,
-        error: 'Doubao Vision circuit breaker open. Using text-only fallback mode.',
-      };
+      return { success: false, error: 'Doubao Vision circuit breaker open. Using text-only fallback mode.' };
     }
   }
 
   const apiKey = await loadApiKey('doubao');
   if (!apiKey) {
-    return { success: false, error: '豆包 API Key 未配置。请在设置页面填入 ARK API Key。' };
+    return { success: false, error: '豆包 API Key 未配置。' };
   }
 
   const endpointId = await loadDoubaoEndpointId();
   if (!endpointId) {
-    return { success: false, error: '豆包 Endpoint ID (ep-xxx) 未配置。请在设置页面填入接入点 ID。' };
+    return { success: false, error: '豆包 Endpoint ID (ep-xxx) 未配置。' };
   }
 
-  // Build a structured prompt for element ID identification
-  const systemPrompt = `你是一个视觉识别助手。图片中叠加了红色数字标签。请仔细查看图片中的数字标签，回答用户关于标签编号的问题。
-规则：
-- 只返回一个数字 ID
-- 如果无法确定，返回 -1
-- 不要返回任何其他文字，只返回数字`;
+  const mode = request.mode ?? 'auto';
 
-  const userPrompt = `${request.question}\n\n请返回对应的标签数字编号。只返回数字，不要其他内容。`;
+  // Build prompt based on mode
+  let systemPrompt: string;
+  let userPrompt: string;
+
+  switch (mode) {
+    case 'identify_element':
+      systemPrompt = `你是一个视觉识别助手。图片中叠加了红色数字标签。只返回标签编号，不要其他文字。如果无法确定返回 -1。`;
+      userPrompt = `${request.question}\n只返回数字。`;
+      break;
+
+    case 'read_text':
+      systemPrompt = `你是一个 OCR 文字提取助手。仔细阅读图片中的所有文字，完整、准确地输出。保留原文的换行和结构。不要添加解释。`;
+      userPrompt = `请提取图片中的所有文字内容。`;
+      break;
+
+    case 'describe':
+      systemPrompt = `你是一个视觉分析助手。仔细观察图片内容，描述你看到的东西——布局、元素、文字、区域、状态。尽可能详细和准确。`;
+      userPrompt = request.question;
+      break;
+
+    case 'auto':
+    default:
+      systemPrompt = `你是一个视觉识别助手。根据用户的问题来分析图片。如果图片中有红色数字标签，标签编号可以用来定位元素。回答要直接、准确、有用。`;
+      userPrompt = request.question;
+      break;
+  }
 
   const result = await fetchWithRetry<{
     choices: Array<{
@@ -200,30 +220,34 @@ export async function callDoubaoVision(
 
   // Parse response
   const content = result.data.choices[0]?.message?.content ?? '';
-  const trimmed = content.trim();
-
-  // Extract numeric ID from response
-  const idMatch = trimmed.match(/-?\b(\d+)\b/);
-  const elementId = idMatch ? parseInt(idMatch[1], 10) : undefined;
-
-  // Infer confidence from response format
-  let confidence = 0.5;
-  if (elementId && trimmed === String(elementId)) {
-    confidence = 0.95; // Exact numeric match — high confidence
-  } else if (elementId && trimmed.match(/^\d+$/)) {
-    confidence = 0.9;
-  } else if (elementId) {
-    confidence = 0.7; // ID found within other text
-  } else if (trimmed === '-1' || trimmed.includes('-1')) {
-    confidence = 0.8; // Model explicitly said it can't find it
-  }
 
   // Record success
   circuit.consecutiveFailures = 0;
 
+  // Parse element ID from content (only relevant for identify_element mode)
+  const idMatch = content.match(/-?\b(\d+)\b/);
+  const elementId = (mode === 'identify_element' && idMatch)
+    ? parseInt(idMatch[1], 10)
+    : undefined;
+
+  // Estimate confidence
+  let confidence = 0.5;
+  if (mode === 'identify_element') {
+    if (elementId !== undefined && elementId >= 0 && content.trim() === String(elementId)) {
+      confidence = 0.95;
+    } else if (elementId !== undefined && elementId >= 0) {
+      confidence = 0.7;
+    } else if (content.trim() === '-1') {
+      confidence = 0.8;
+    }
+  } else {
+    confidence = 0.85; // Non-element responses: moderate confidence
+  }
+
   return {
     success: true,
-    elementId: elementId && elementId >= 0 ? elementId : undefined,
+    elementId: elementId !== undefined && elementId >= 0 ? elementId : undefined,
+    content: content.trim(),
     reasoning: content,
     confidence,
   };
