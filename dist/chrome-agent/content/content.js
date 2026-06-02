@@ -1621,41 +1621,23 @@ async function handleCallVisionModel(params) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
-function resolveElementByAnyId(elementId) {
-  const selector = semanticIdToSelector.get(elementId);
-  if (selector) {
-    try {
-      const el = document.querySelector(selector);
-      if (el && el.isConnected) return el;
-    } catch {
-    }
-  }
-  return resolveElementById(elementId);
-}
 async function handleExecute(type, params) {
   transition("executing");
   extractResultStale = true;
-  const elementId = params.element_id;
-  const el = resolveElementByAnyId(elementId);
-  if (!el) {
-    transition("idle");
-    return { success: false, error: `Element #${elementId} not found on page. Try get_page_semantic_structure again to refresh element IDs.` };
-  }
-  el.setAttribute("data-tag-id", `@${elementId}`);
   try {
     let result;
     switch (type) {
       case "click":
-        result = await executeClick({ elementId });
+        result = await executeClick({ elementId: params.element_id });
         break;
       case "type":
         result = await executeType({
-          elementId,
+          elementId: params.element_id,
           text: params.text
         });
         break;
       case "hover":
-        result = await executeHover({ elementId });
+        result = await executeHover({ elementId: params.element_id });
         break;
       case "press_key":
         result = await executePressKey({ key: params.key });

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrome Agent 设置</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --glass-bg: rgba(18, 18, 24, 0.9);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --text-primary: rgba(255, 255, 255, 0.92);
+      --text-secondary: rgba(255, 255, 255, 0.55);
+      --accent: #6C5CE7;
+      --accent-glow: rgba(108, 92, 231, 0.3);
+      --danger: #FF6B6B;
+      --success: #51CF66;
+      --radius: 12px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--bg);
+      padding: 24px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h1 .icon { font-size: 20px; }
+    .section {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .section h2 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .label-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(108,92,231,0.2);
+      color: #A29BFE;
+      font-weight: 500;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .hint {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      opacity: 0.7;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .btn-save {
+      background: var(--accent);
+      color: white;
+      flex: 1;
+    }
+    .btn-save:hover {
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+    .btn-test {
+      background: rgba(255,255,255,0.06);
+      color: var(--text-primary);
+      border: 1px solid var(--glass-border);
+    }
+    .btn-test:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      animation: toast-in 0.3s ease, toast-out 0.3s ease 2.5s forwards;
+      z-index: 100;
+    }
+    .toast.success { background: rgba(81,207,102,0.2); color: var(--success); border: 1px solid rgba(81,207,102,0.3); }
+    .toast.error { background: rgba(255,107,107,0.2); color: var(--danger); border: 1px solid rgba(255,107,107,0.3); }
+    @keyframes toast-in { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    @keyframes toast-out { from { opacity: 1; } to { opacity: 0; } }
+    .domain-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .domain-tag {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .domain-tag .remove {
+      cursor: pointer;
+      color: var(--danger);
+      font-size: 14px;
+      line-height: 1;
+    }
+    .add-domain {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .add-domain input { flex: 1; }
+    .add-domain button {
+      padding: 8px 14px;
+      font-size: 12px;
+      flex: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span class="icon">✦</span> Chrome Agent 设置</h1>
+
+    <!-- DeepSeek API Key -->
+    <div class="section">
+      <h2>DeepSeek API</h2>
+      <label for="deepseek-key">API Key</label>
+      <input type="password" id="deepseek-key" placeholder="sk-xxxxxxxxxxxxxxxx" autocomplete="off">
+      <p class="hint">从 <a href="https://platform.deepseek.com" target="_blank" style="color:var(--accent)">platform.deepseek.com</a> 获取。格式: sk-xxxx</p>
+      <div class="actions">
+        <button class="btn-test" id="test-deepseek">验证密钥</button>
+      </div>
+    </div>
+
+    <!-- Doubao / ARK -->
+    <div class="section">
+      <h2>豆包 Vision API（火山方舟 ARK）</h2>
+
+      <label for="doubao-api-key">ARK API Key</label>
+      <input type="password" id="doubao-api-key" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+      <p class="hint">从 <a href="https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey" target="_blank" style="color:var(--accent)">火山方舟 API Key 管理</a> 获取。</p>
+
+      <div class="label-row" style="margin-top:14px">
+        <label for="doubao-endpoint" style="margin-bottom:0">Endpoint ID（接入点）</label>
+        <span class="badge">ep- 开头</span>
+      </div>
+      <input type="text" id="doubao-endpoint" placeholder="ep-20250101123456-xxxxx" autocomplete="off">
+      <p class="hint">在<a href="https://console.volcengine.com/ark/region:ark+cn-beijing/endpoint" target="_blank" style="color:var(--accent)">在线推理 → 接入点管理</a> 创建推理接入点，选择视觉模型如 Doubao-1.5-vision-pro-32k。</p>
+
+      <div class="actions">
+        <button class="btn-test" id="test-doubao">验证连接</button>
+      </div>
+    </div>
+
+    <!-- Screenshot Block List -->
+    <div class="section">
+      <h2>截图隐私</h2>
+      <label>禁止截图的网站</label>
+      <div class="domain-list" id="block-list"></div>
+      <div class="add-domain">
+        <input type="text" id="new-domain" placeholder="例如: bank.com">
+        <button id="add-domain-btn" class="btn-test">添加</button>
+      </div>
+      <p class="hint">添加银行、邮箱、医疗等敏感域名。这些网站永远不会被截图。</p>
+    </div>
+
+    <!-- Save -->
+    <div class="actions">
+      <button class="btn-save" id="save-all">保存全部</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" style="display:none"></div>
+  <script src="settings.js"></script>
+</body>
+</html>

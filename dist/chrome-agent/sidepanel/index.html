@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrome Agent</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="bg-gradient"></div>
+
+  <div class="glass-panel">
+    <header class="panel-header">
+      <div class="header-left">
+        <span class="title-icon">✦</span>
+        <h1 class="panel-title">Chrome Agent</h1>
+      </div>
+      <div class="header-right">
+        <span id="token-badge" class="token-badge" title="Token 用量">—</span>
+        <button id="theme-btn" class="theme-btn" title="切换主题">🌓</button>
+        <button id="stop-btn" class="stop-btn" title="停止执行 (Esc)" disabled><span class="stop-icon">■</span></button>
+        <button id="settings-btn" class="icon-btn" title="设置">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="tab-bar" class="tab-bar">
+      <div class="tab-info">
+        <img id="tab-favicon" class="tab-favicon" src="" alt="" onerror="this.style.display='none'" />
+        <span id="tab-title" class="tab-title">加载中...</span>
+      </div>
+      <span id="tab-url" class="tab-url"></span>
+    </div>
+
+    <main id="chat-area" class="chat-area"></main>
+
+    <div id="status-bar" class="status-bar">
+      <span id="status-dot" class="status-dot idle"></span>
+      <span id="status-text" class="status-text">就绪</span>
+      <span id="cost-display" class="cost-display"></span>
+    </div>
+
+    <footer class="input-area">
+      <div id="context-chips" class="context-chips"></div>
+      <div class="input-row">
+        <textarea id="user-input" class="chat-input" placeholder="告诉 Chrome Agent 你想做什么..." rows="1"></textarea>
+        <button id="send-btn" class="send-btn" title="发送 (Enter)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Onboarding overlay — all handlers in sidepanel.js -->
+  <div id="onboarding" class="onboarding-overlay">
+    <div class="onboarding-card">
+      <div class="onboarding-steps">
+        <div class="on-step active" data-step="1">
+          <div class="on-step-icon">✦</div>
+          <h2>欢迎使用 Chrome Agent</h2>
+          <p>我能看懂网页内容，帮你自动操作浏览器。<br>用自然语言告诉我你想做什么就好。</p>
+        </div>
+        <div class="on-step" data-step="2">
+          <div class="on-step-icon">🔑</div>
+          <h2>配置 API 密钥</h2>
+          <p>需要 DeepSeek API Key（决策大脑）<br>和豆包（视觉眼睛，可选需要 ARK API Key + Endpoint ID）。</p>
+          <button class="glass-btn" id="on-to-settings">去设置页面 →</button>
+        </div>
+        <div class="on-step" data-step="3">
+          <div class="on-step-icon">✓</div>
+          <h2>密钥验证</h2>
+          <p id="on-key-status">在设置页面填入密钥后回来验证。</p>
+          <button class="glass-btn" id="on-verify-keys">验证密钥状态</button>
+        </div>
+        <div class="on-step" data-step="4">
+          <div class="on-step-icon">🚀</div>
+          <h2>开始使用</h2>
+          <p>一切就绪！选择一个任务试试：</p>
+          <div class="on-demo-tasks">
+            <button class="demo-task" data-demo="0">📄 总结本页内容</button>
+            <button class="demo-task" data-demo="1">🔍 搜索内容</button>
+            <button class="demo-task" data-demo="2">✏️ 填写表单</button>
+          </div>
+        </div>
+      </div>
+      <div class="onboarding-nav">
+        <div class="on-dots">
+          <span class="on-dot active" data-dot="1"></span>
+          <span class="on-dot" data-dot="2"></span>
+          <span class="on-dot" data-dot="3"></span>
+          <span class="on-dot" data-dot="4"></span>
+        </div>
+        <button type="button" id="on-next" class="glass-btn">下一步</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
